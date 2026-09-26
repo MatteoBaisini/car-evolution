@@ -118,19 +118,3 @@ js/
 ```
 
 ---
-
-## 💡 Concetti che si incontrano
-
-- **Geometria computazionale**: normali, offset di curve, intersezione di segmenti, spline di Catmull-Rom,
-  ricampionamento ad arco costante, raggio di curvatura.
-- **Ottimizzazione**: griglia spaziale per ridurre i test di collisione.
-- **Dinamica del veicolo**: cerchio di aderenza, carico aerodinamico, sottosterzo, bilancio termico delle gomme.
-- **Machine learning**: reti neurali, neuroevoluzione, selezione / crossover / mutazione, elitismo,
-  diversità genetica, **feature engineering**, **overfitting e generalizzazione**.
-
-### Esperimenti da provare
-1. Imposta la mutazione a 0% oppure al 30%: cosa succede alla diversità genetica?
-2. Allena su una sola pista, poi guarda la scheda Generalizzazione. Passa a "casuale ogni generazione" e confronta.
-3. Cambia l'ala da 0 a 1 nella scheda Ingegneria: come cambiano la velocità in curva e il tempo teorico?
-4. Porta i giri per gara a 4 con le gomme soft: le auto imparano a risparmiarle?
-5. Scarica il cervello campione, ricomincia da zero e ricaricalo con "Riparti da questo cervello".
