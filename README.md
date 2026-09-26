@@ -6,6 +6,8 @@ Nessuno insegna loro a guidare: a ogni gara le più veloci diventano genitori, e
 — mescolate e mutate — ci riprovano. Dopo qualche decina di generazioni imparano da sole
 a frenare prima delle curve, a scegliere la traiettoria e a gestire le gomme.
 
+### 🎮 [Provala subito nel browser →](https://matteobaisini.github.io/car-evolution/car-project.html)
+
 ![Screenshot della simulazione](docs/screenshot.png)
 
 > Progetto didattico: ogni file è commentato per spiegare *perché* le cose funzionano,
@@ -16,10 +18,11 @@ a frenare prima delle curve, a scegliere la traiettoria e a gestire le gomme.
 
 ## ▶️ Come avviarlo
 
-Non serve installare niente. Scarica il repository e apri `car-project.html` nel browser:
+Non serve installare niente. Puoi usare la [demo online](https://matteobaisini.github.io/car-evolution/car-project.html),
+oppure scaricare il repository e aprire `car-project.html` nel browser:
 
 ```bash
-git clone https://github.com/<utente>/car-evolution.git
+git clone https://github.com/MatteoBaisini/car-evolution.git
 cd car-evolution
 start car-project.html        # Windows  (macOS: open, Linux: xdg-open)
 ```
