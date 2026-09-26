@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Car Evolution</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Car Evolution <small>neuroevoluzione di piloti di F1</small></h1>
+    <p class="subtitle">
+      150 monoposto con fisica realistica (motore, aerodinamica, cerchio di aderenza, gomme) e una piccola rete
+      neurale al posto del pilota. Nessuno insegna loro a guidare: a ogni gara le più veloci diventano genitori,
+      e le figlie — mescolate e mutate — ci riprovano.
+    </p>
+  </header>
+
+  <!-- ===================== Comandi ===================== -->
+  <section class="toolbar panel">
+    <div class="group">
+      <button id="btnPause" title="Spazio">⏸ Pausa</button>
+      <span class="speed">
+        <button id="btnSlower" title="Tasto -">−</button>
+        <span id="speedLabel">1x</span>
+        <button id="btnFaster" title="Tasto +">+</button>
+      </span>
+      <button id="btnSkip" title="Tasto N">⏭ Termina gara</button>
+      <button id="btnReset">↺ Ricomincia da zero</button>
+    </div>
+    <div class="group toggles">
+      <label><input type="checkbox" id="optSensors"> Sensori</label>
+      <label><input type="checkbox" id="optGates"> Gate</label>
+      <label><input type="checkbox" id="optDeaths"> Incidenti</label>
+      <label><input type="checkbox" id="optSkids"> Segni in pista</label>
+      <label><input type="checkbox" id="optPaths"> Traiettoria record</label>
+      <label><input type="checkbox" id="optGhost"> Fantasma</label>
+      <label><input type="checkbox" id="optLts"> Profilo teorico</label>
+      <label><input type="checkbox" id="optAll"> Tutte le auto</label>
+    </div>
+  </section>
+
+  <section id="status" class="status"></section>
+
+  <!-- ===================== Pista + leader ===================== -->
+  <div class="main">
+    <div class="panel track-panel">
+      <canvas id="canvas" width="1200" height="800"></canvas>
+      <div class="legend">
+        <span><i style="background:#3498db"></i>in corsa</span>
+        <span><i style="background:#2ecc71"></i>élite</span>
+        <span><i style="background:#f39c12"></i>leader</span>
+        <span><i style="background:rgba(255,255,255,0.5)"></i>fantasma del record</span>
+        <span><i class="x" style="color:#e74c3c">✕</i>a muro</span>
+        <span><i class="x" style="color:#b57edc">●</i>bloccata</span>
+        <span><i style="background:#111"></i>strisciata</span>
+        <span><i style="background:#8c693c"></i>erba</span>
+        <span class="speedscale">velocità <b>50</b><i class="grad"></i><b>280 km/h</b></span>
+      </div>
+    </div>
+
+    <aside class="side">
+      <div class="panel">
+        <h3>Leader in diretta</h3>
+        <p class="explain">Cosa vede, cosa sente, cosa decide. I settori si colorano come in TV:
+          <b class="purple-t">viola</b> = migliore di sempre, <b class="green-t">verde</b> = meglio del giro prima.</p>
+        <div id="live"></div>
+        <h4>Cerchio di aderenza <small>(tratteggio = limite adesso)</small></h4>
+        <div class="gg-wrap"><canvas id="ggLive" width="170" height="170"></canvas><p id="ggCap" class="muted"></p></div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="grid two">
+    <div class="panel">
+      <h3>Cervello del leader</h3>
+      <p class="explain">16 ingressi → 12 neuroni nascosti → 2 uscite analogiche. Linee <b class="blue">blu</b> = pesi positivi,
+        <b class="red">rosse</b> = negativi. Neuroni gialli = attivi positivi, azzurri = attivi negativi.</p>
+      <canvas id="net" width="560" height="330" class="chart net"></canvas>
+    </div>
+    <div class="panel">
+      <h3>Torre dei tempi</h3>
+      <p class="explain">Classifica live: distacco in metri dal leader, ultimo giro, stato delle gomme.</p>
+      <div id="tower"></div>
+    </div>
+  </div>
+
+  <!-- ===================== Schede ===================== -->
+  <nav class="tabs">
+    <button data-tab="learn" class="active">🧬 Apprendimento</button>
+    <button data-tab="tele">📈 Telemetria</button>
+    <button data-tab="eng">🔧 Ingegneria vettura</button>
+    <button data-tab="gen">🧪 Generalizzazione</button>
+    <button data-tab="demo">🎮 Guida tu &amp; Demo</button>
+  </nav>
+
+  <!-- ---------- APPRENDIMENTO ---------- -->
+  <section class="tab" id="tab-learn">
+    <div class="grid">
+      <div class="panel">
+        <h3>Fitness per generazione</h3>
+        <p class="explain">Il "voto" (in giri). Sotto la linea = non ha finito la gara; sopra = arrivata, più in alto = più veloce.</p>
+        <canvas class="chart" id="chartFitness" width="420" height="220"></canvas>
+        <p class="now" id="capFitness"></p>
+      </div>
+      <div class="panel">
+        <h3>Come finisce ogni auto</h3>
+        <p class="explain">Arrivate, a muro, bloccate, fuori tempo, per generazione. Il giallo dovrebbe crescere.</p>
+        <canvas class="chart" id="chartOutcome" width="420" height="220"></canvas>
+        <p class="now" id="capOutcome"></p>
+      </div>
+      <div class="panel">
+        <h3>Diversità genetica</h3>
+        <p class="explain">Quanto sono diversi i "cervelli". Se crolla, la popolazione è fatta di cloni e smette di esplorare.</p>
+        <canvas class="chart" id="chartDiversity" width="420" height="220"></canvas>
+        <p class="now" id="capDiversity"></p>
+      </div>
+      <div class="panel">
+        <h3>Distribuzione della fitness</h3>
+        <p class="explain">Quante auto hanno preso ogni voto nell'ultima generazione: la selezione in un colpo d'occhio.</p>
+        <canvas class="chart" id="chartHist" width="420" height="220"></canvas>
+        <p class="now" id="capHist"></p>
+      </div>
+      <div class="panel">
+        <h3>Parametri dell'evoluzione</h3>
+        <p class="explain">Valgono dalla prossima generazione.</p>
+        <div id="params"></div>
+      </div>
+      <div class="panel">
+        <h3>Diario dell'evoluzione</h3>
+        <p class="explain">Gli eventi importanti, dal più recente.</p>
+        <ul id="log"></ul>
+      </div>
+    </div>
+    <div class="panel wide">
+      <h3>Classifica dell'ultima generazione</h3>
+      <p class="explain">Chi era ogni auto, com'è andata e quante figlie ha avuto: le prime ne hanno di più.</p>
+      <div class="table-wrap"><table id="leaderboard"></table></div>
+    </div>
+  </section>
+
+  <!-- ---------- TELEMETRIA ---------- -->
+  <section class="tab" id="tab-tele" hidden>
+    <p class="explain big">Come lavorano gli ingegneri di pista: ogni grafico ha sull'asse X la <b>distanza sul giro</b>.
+      Pista attuale: <b id="telTitle"></b>. Il <b>record</b> è confrontato con il miglior giro dell'ultima generazione e con
+      il <b>profilo teorico</b> (LTS, vedi scheda Ingegneria).</p>
+    <div class="grid">
+      <div class="panel span2">
+        <h3>Velocità [km/h]</h3>
+        <p class="explain">Le "valli" sono le curve. Dove il record sta sotto la linea teorica, lì c'è tempo da guadagnare.</p>
+        <canvas class="chart" id="chartSpeed" width="860" height="240"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Diagramma g-g</h3>
+        <p class="explain">Ogni punto = un istante. Un pilota perfetto "riempie" il cerchio: usa sempre tutto il grip.</p>
+        <canvas class="chart" id="chartGG" width="420" height="300"></canvas>
+      </div>
+      <div class="panel span2">
+        <h3>Gas e freno (giro record)</h3>
+        <p class="explain">Si frena <i>prima</i> della curva (rosso), si ridà gas in uscita (verde).</p>
+        <canvas class="chart" id="chartPedals" width="860" height="180"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Settori</h3>
+        <p class="explain">Come nei tempi TV. Viola = migliore di sempre.</p>
+        <div class="table-wrap"><table id="sectors" class="sectors-table"></table></div>
+        <p class="now" id="capSectors"></p>
+      </div>
+      <div class="panel span2">
+        <h3>Sterzo e uso del grip (giro record)</h3>
+        <p class="explain">Oltre il 100% le gomme strisciano: sottosterzo.</p>
+        <canvas class="chart" id="chartSteer" width="860" height="180"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Tempo sul giro per generazione</h3>
+        <p class="explain">Solo le gare su questa pista.</p>
+        <canvas class="chart" id="chartLapTimes" width="420" height="220"></canvas>
+      </div>
+      <div class="panel span2">
+        <h3>Temperatura gomme (giro record)</h3>
+        <p class="explain">Finestra ottimale ≈ 95 °C: fredde o surriscaldate perdono fino al 30% di grip.</p>
+        <canvas class="chart" id="chartTyres" width="860" height="160"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- INGEGNERIA ---------- -->
+  <section class="tab" id="tab-eng" hidden>
+    <div class="grid">
+      <div class="panel">
+        <h3>Setup della vettura</h3>
+        <p class="explain">Vale per tutte le auto dalla prossima gara (o subito con il pulsante).
+          Cambiare setup cambia la fisica: il cervello allenato potrebbe non adattarsi!</p>
+        <div id="setup"></div>
+        <label class="check"><input type="checkbox" id="optInteractions"> Interazioni tra auto (scia + contatti)</label>
+        <p class="explain">La scia riduce il drag fino al 40% a chi segue. Con le interazioni la fitness dipende anche dalle
+          avversarie: l'evoluzione diventa "competitiva".</p>
+        <button id="btnApplySetup">⟳ Applica subito (ricomincia la gara)</button>
+      </div>
+      <div class="panel span2">
+        <h3>Scheda tecnica</h3>
+        <p class="explain">Calcolata dal modello fisico (physics.js) con il setup attuale.</p>
+        <div id="techsheet" class="specs"></div>
+      </div>
+      <div class="panel span2">
+        <h3>Velocità massima in curva vs raggio</h3>
+        <p class="explain">In curva: v²/R = μ·(g + k<sub>L</sub>·v²). Il carico aerodinamico k<sub>L</sub> "gonfia" la curva alle alte velocità.</p>
+        <canvas class="chart" id="chartCorner" width="860" height="260"></canvas>
+        <p class="now" id="capCorner"></p>
+      </div>
+      <div class="panel">
+        <h3>Ottimizzazione dell'ala</h3>
+        <p class="explain">Tempo teorico sul giro al variare dell'ala: il compromesso curva/rettilineo.</p>
+        <canvas class="chart" id="chartWing" width="420" height="260"></canvas>
+        <p class="now" id="capWing"></p>
+      </div>
+    </div>
+    <div class="panel wide explain-box">
+      <h3>Lap Time Simulation (LTS)</h3>
+      <p>Il "profilo teorico" usato in tutta la pagina è una <b>simulazione quasi-statica del giro</b>, la base di quelle usate dai team:
+        (1) in ogni punto la velocità non può superare quella massima in curva; (2) una passata in avanti limita le accelerazioni
+        (motore e grip residuo); (3) una passata all'indietro impone di aver frenato in tempo prima di ogni curva. Il minimo dei tre
+        vincoli è il profilo di velocità; il tempo è la somma di distanza/velocità. Attenzione: segue la linea <i>centrale</i>.
+        Una buona traiettoria allarga le curve, quindi l'IA (o tu) <b>può anche battere</b> il teorico. Attivalo sulla pista con "Profilo teorico".</p>
+    </div>
+  </section>
+
+  <!-- ---------- GENERALIZZAZIONE ---------- -->
+  <section class="tab" id="tab-gen" hidden>
+    <div class="panel wide explain-box">
+      <h3>Ha imparato a guidare, o ha imparato la pista a memoria?</h3>
+      <p>È il problema centrale del machine learning: l'<b>overfitting</b>. Dopo ogni gara la campionessa corre da sola un giro sulle
+        <b>piste d'esame</b>, che non ha mai visto in allenamento. Se in allenamento va forte e all'esame si schianta, ha memorizzato
+        il circuito. Rimedio: allenarla su piste diverse (rotazione, o una pista casuale nuova a ogni generazione), che la costringe
+        a usare davvero i sensori.</p>
+    </div>
+    <div class="grid">
+      <div class="panel">
+        <h3>Modalità di allenamento</h3>
+        <div class="param"><label for="trainMode">Su che pista si allenano</label>
+          <select id="trainMode">
+            <option value="fixed">Sempre la stessa pista</option>
+            <option value="rotate">Rotazione tra le piste di allenamento</option>
+            <option value="random">Pista casuale nuova ogni generazione</option>
+          </select></div>
+        <div class="param"><label for="trainTrack">Pista (modalità fissa)</label><select id="trainTrack"></select></div>
+        <p class="explain">Vale dalla prossima generazione. Le piste d'esame non si usano mai per allenarsi.</p>
+        <button id="btnApplyTrain">⟳ Applica subito</button>
+      </div>
+      <div class="panel span2">
+        <h3>Allenamento vs esame</h3>
+        <p class="explain">% di giro completata dalla campionessa di ogni generazione. Se la curva verde sale e l'arancione no: overfitting.</p>
+        <canvas class="chart" id="chartOverfit" width="860" height="240"></canvas>
+        <p class="now" id="capOverfit"></p>
+      </div>
+      <div class="panel span2">
+        <h3>Pagella dell'ultima campionessa</h3>
+        <div class="table-wrap"><table id="examTable"></table></div>
+      </div>
+      <div class="panel">
+        <h3>Salva / carica il cervello</h3>
+        <p class="explain">Il cervello è solo un file JSON con 230 numeri. Scaricalo per conservarlo o per ripartire da lì.</p>
+        <button id="btnSaveBrain">💾 Scarica la campionessa</button>
+        <label class="file">📂 Carica un cervello <input type="file" id="fileBrain" accept=".json,application/json"></label>
+        <button id="btnSeedBrain" disabled>🌱 Riparti da questo cervello</button>
+        <p class="now" id="brainInfo"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- DEMO ---------- -->
+  <section class="tab" id="tab-demo" hidden>
+    <div class="grid">
+      <div class="panel">
+        <h3>Chi guida, e dove</h3>
+        <div class="param"><label for="demoDriver">Pilota</label>
+          <select id="demoDriver">
+            <option value="champion">🤖 Campionessa attuale</option>
+            <option value="loaded" disabled>📂 Cervello caricato</option>
+            <option value="human">🧑 Tu (tastiera)</option>
+          </select></div>
+        <div class="param"><label for="demoTrack">Pista</label><select id="demoTrack"></select></div>
+        <div class="param"><label for="demoLaps">Giri</label>
+          <select id="demoLaps"><option>1</option><option selected>2</option><option>3</option><option>5</option></select></div>
+        <button id="btnDemoStart">▶ Parti</button>
+        <button id="btnDemoStop">■ Torna all'allenamento</button>
+        <p class="now" id="demoInfo">Durante la demo l'allenamento è in pausa. Guidando tu: ↑ gas, ↓ freno, ← → sterzo.</p>
+      </div>
+      <div class="panel span2">
+        <h3>Risultati</h3>
+        <p class="explain">Riesci a battere l'IA? E il tempo teorico? Stessa fisica, stesse gomme, stesso setup.</p>
+        <div class="table-wrap"><table id="demoResults"><tr><td class="muted">Nessuna prova ancora.</td></tr></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== Spiegazione ===================== -->
+  <h2 class="section-title">Cosa sta succedendo, passo per passo</h2>
+  <section class="steps">
+    <div class="step"><b>1 · Percepire</b><p>7 raggi misurano il bordo pista; in più velocità, grip usato, curve in arrivo
+      (come un pilota che conosce il circuito), posizione e angolo sulla pista, temperatura e usura gomme, e i "g" che servirebbero per la prossima curva: 16 numeri.</p></div>
+    <div class="step"><b>2 · Decidere</b><p>La rete (16 → 12 → 2) calcola <code>tanh(Σ peso·ingresso + bias)</code> e produce
+      due comandi analogici: gas/freno e sterzo, da −1 a +1.</p></div>
+    <div class="step"><b>3 · Fisica</b><p>Modello a bicicletta: motore a potenza costante, drag ∝ v², carico aerodinamico ∝ v²,
+      cerchio di aderenza. Troppa curva → sottosterzo; frenare in curva ruba grip allo sterzo. Erba: poco grip.</p></div>
+    <div class="step"><b>4 · Votare</b><p><code>fitness = giri percorsi</code> se non arriva; <code>L + L·(1 − t/tMax)</code> se
+      finisce la gara. Qualsiasi arrivata batte qualsiasi non-arrivata; tra le arrivate vince la più veloce.</p></div>
+    <div class="step"><b>5 · Riprodursi</b><p>Élite copiate identiche; le altre nascono da due genitori scelti a torneo,
+      crossover uniforme dei 230 pesi, poi mutazione gaussiana.</p></div>
+    <div class="step"><b>6 · Esame</b><p>La campionessa corre da sola su piste mai viste: misuriamo se ha imparato a
+      <i>guidare</i> o solo <i>questa</i> pista.</p></div>
+  </section>
+
+  <footer class="foot">
+    Tasti: <kbd>Spazio</kbd> pausa · <kbd>+</kbd>/<kbd>−</kbd> velocità · <kbd>N</kbd> termina gara ·
+    <kbd>S</kbd> sensori · <kbd>G</kbd> gate · <kbd>↑↓←→</kbd> guida (in "Guida tu").
+    Scala: 1 m = 5 px, 60 frame = 1 s simulato (i tempi non dipendono dalla velocità di simulazione).
+  </footer>
+
+  <!-- Ordine di caricamento: strumenti → fisica → pista → auto → cervello → evoluzione → interfaccia -->
+  <script src="js/util.js"></script>
+  <script src="js/physics.js"></script>
+  <script src="js/track.js"></script>
+  <script src="js/tracks.js"></script>
+  <script src="js/car.js"></script>
+  <script src="js/sensors.js"></script>
+  <script src="js/network.js"></script>
+  <script src="js/genetic.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

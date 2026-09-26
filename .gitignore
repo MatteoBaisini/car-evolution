@@ -1,0 +1,8 @@
+# Impostazioni dell'editor e file di sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Cervelli scaricati dalla pagina (salvali altrove se vuoi versionarli)
+cervello-*.json
